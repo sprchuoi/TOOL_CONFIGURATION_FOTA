@@ -1,5 +1,4 @@
 import pyrebase
-from Crypto
 config = {
     "apiKey": "AIzaSyBNO0YPEUFXL2J-hudUv6x2Ae2NFhtzt_g",
 
@@ -11,7 +10,10 @@ config = {
 
     "messagingSenderId": "682390874917",
 
-    "appId": "1:682390874917:web:e5f3e5b3405441fd4dc8cc"
+    "appId": "1:682390874917:web:e5f3e5b3405441fd4dc8cc",
+
+    "databaseURL" : "", 
+    "serviceAccount" : "TOOL_CONFIGURATION_FOTA\\serviceAccount.json"
 
 }
 
@@ -21,3 +23,4 @@ class FirebaseInit:
         self.storage = firebase.storage()
     def fb_add_file(self, local_file_path, path_on_cloud):
         self.storage.child(path_on_cloud).put(local_file_path)
+        
