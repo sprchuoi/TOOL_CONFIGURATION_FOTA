@@ -1,11 +1,9 @@
 import sys
-import zlib
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import fb_connect_storage as firebase
-import subprocess
-import binascii
+import hashlib
 custom_crc_table = {}
 poly = 0x04C11DB7
 crc32_checksum = 0x00000000
@@ -105,7 +103,45 @@ class Worker(QObject):
         crc = hex(crc)
         return crc
     
-    
+
+class LoginPage(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Login Page")
+        self.setGeometry(200, 200, 300, 150)
+
+        layout = QVBoxLayout()
+
+        self.username_label = QLabel("Username:")
+        self.username_input = QLineEdit()
+        layout.addWidget(self.username_label)
+        layout.addWidget(self.username_input)
+
+        self.password_label = QLabel("Password:")
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.Password)
+        layout.addWidget(self.password_label)
+        layout.addWidget(self.password_input)
+
+        self.login_button = QPushButton("Login")
+        self.login_button.clicked.connect(self.login)
+        layout.addWidget(self.login_button)
+
+        self.setLayout(layout)
+    def login(self):
+        username = self.username_input.text()
+        password = self.password_input.text()
+
+        # Check if username and password match predefined values
+        if username == "admin" and password == "password":
+            QMessageBox.information(self, "Success", "Login Successful!")
+            self.open_Firebase_Uploader()
+            self.hide()
+        else:
+            QMessageBox.warning(self, "Error", "Invalid Username or Password")
+    def open_Firebase_Uploader(self):
+        self.firebase_uploader = Firebase_Uploader()
+        self.firebase_uploader.show()
 class Firebase_Uploader(QWidget):
     def __init__(self):
         super().__init__()
@@ -196,6 +232,6 @@ class Firebase_Uploader(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
-    window = Firebase_Uploader()
+    window = LoginPage()
     window.show()
     sys.exit(app.exec_())

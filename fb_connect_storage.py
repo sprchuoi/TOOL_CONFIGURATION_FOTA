@@ -1,17 +1,18 @@
 import pyrebase
 config = {
-    "apiKey": "AIzaSyBNO0YPEUFXL2J-hudUv6x2Ae2NFhtzt_g",
+    "apiKey": "AIzaSyC-Wok-b8TRM4CvH6Hrd_5zxGF6bHRN1Is",
 
-    "authDomain": "fota-be08e.firebaseapp.com",
+    "authDomain": "aquasys-e55d4.firebaseapp.com",
 
-    "projectId": "fota-be08e",
+    "databaseURL": "https://aquasys-e55d4-default-rtdb.firebaseio.com",
 
-    "storageBucket": "fota-be08e.appspot.com",
+    "projectId": "aquasys-e55d4",
 
-    "messagingSenderId": "682390874917",
+    "storageBucket": "aquasys-e55d4.appspot.com",
 
-    "appId": "1:682390874917:web:e5f3e5b3405441fd4dc8cc",
+   "messagingSenderId": "509131979705",
 
+    "appId": "1:509131979705:web:5b24b8419a4d98d35d1468",
     "databaseURL" : "", 
     "serviceAccount" : "TOOL_CONFIGURATION_FOTA\\serviceAccount.json"
 
