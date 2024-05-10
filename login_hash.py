@@ -3,7 +3,7 @@ import hashlib
 def signup():
      email = input(“Enter email address: “)
      pwd = input(“Enter password: “)
-     conf_pwd = input(“Confirm password: “)     \
+     conf_pwd = input(“Confirm password: “)    
             if conf_pwd == pwd:
          enc = conf_pwd.encode()
          hash1 = hashlib.md5(enc).hexdigest()     with open(“credentials.txt”, “w”) as f:

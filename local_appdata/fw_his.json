@@ -1,0 +1,38 @@
+[
+    {
+        "time": "06/05/2024-22:45:57",
+        "file_name": "BlinkLed",
+        "code_size": 4980,
+        "sf": 0,
+        "bw": 0,
+        "cr": 0,
+        "app_version": 2
+    },
+    {
+        "time": "06/05/2024-22:50:57",
+        "file_name": "BlinkLed1",
+        "code_size": 4980,
+        "sf": 1,
+        "bw": 8,
+        "cr": 3,
+        "app_version": 12
+    },
+    {
+        "time": "06/05/2024-23:36:08",
+        "file_name": "AquaSys",
+        "code_size": 4980,
+        "sf": 3,
+        "bw": 7,
+        "cr": 3,
+        "app_version": 12
+    },
+    {
+        "time": "07/05/2024-16:37:38",
+        "file_name": "BlinkLed",
+        "code_size": 4980,
+        "sf": 0,
+        "bw": 0,
+        "cr": 0,
+        "app_version": 0
+    }
+]
