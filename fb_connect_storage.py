@@ -67,13 +67,20 @@ class FirebaseInit:
         status_update = root_child.child("node_id").set(node_id)
     def set_LoRa_info(self , FW_name ,sf , bw , cr):
         root_child = self.database.child("Firmware").child(FW_name)
-        status_update = root_child.child("update_status").set(False)
+        status_update = root_child.child("update_status").set(True)
         root_child = self.database.child("Firmware").child(FW_name)
         SF = root_child.child("SF").set(sf)
         root_child = self.database.child("Firmware").child(FW_name)
         BW = root_child.child("BW").set(bw)
         root_child = self.database.child("Firmware").child(FW_name)
         CR = root_child.child("CR").set(cr)
-        
+    def remove_FW_path(self):
+        root_child = self.database.child("Firmware")
+        #remove 
+        root_child.remove()
+    def set_ADR_mode(self , FW_name , ADR_Mode):
+        root_child = self.database.child("Firmware").child(FW_name)
+        ADR_Mode = root_child.child("adr_enable").set(ADR_Mode)
+
 
     
