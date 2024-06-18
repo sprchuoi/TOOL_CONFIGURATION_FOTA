@@ -2,5 +2,13 @@
     {
         "device_name": "SensorNode1",
         "node_address": "26011BCD"
+    },
+    {
+        "device_name": "SensorNode2",
+        "node_address": "26011DEF"
+    },
+    {
+        "device_name": "SensorNode3",
+        "node_address": "260120F0"
     }
 ]

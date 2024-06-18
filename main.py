@@ -14,6 +14,7 @@ from threading import Thread , Event
 import os
 import logging
 import OneSignal 
+import chardet
 import re  # Import the regular expression module
 #global variables
 custom_crc_table = {}
@@ -24,7 +25,6 @@ firebase_instance = None
 FW_information = None 
 cred_path = "TOOL_CONFIGURATION_FOTA/serviceAccount.json"
 file_bin_en_path = r"TOOL_CONFIGURATION_FOTA\file_bin_encrypted"
-
 app_id = "29885265-0db1-43c7-a5f3-b7e1e842aaec"
 api_key = "OWI1ODlkMTQtZGM2MC00OGNmLTkyY2EtZDgyZmYxOTFkYTM0"
 heading = ""
@@ -37,14 +37,15 @@ class Worker(QObject):
     progress = pyqtSignal(int)
     finished = pyqtSignal()
     crc_calculated = pyqtSignal(str)  # New signal to emit the calculated CRC
-    def __init__(self, file_path, firebase_instance , file_name , download_url , user_current , app_version , sf, bw, cr , file_code , ADR_Mode , node_addr):
+    def __init__(self, file_path, firebase_instance , file_name , download_url , user_current , app_version_main , app_version_sub , sf, bw, cr , file_code , ADR_Mode , node_addr, status_update):
         super().__init__()
         self.file_path = file_path
         self.firebase_instance = firebase_instance
         self.file_name = file_name  # Store the file name
         self.download_url  = download_url 
         self.user_current = user_current
-        self.app_version  = app_version
+        self.app_version_main  = app_version_main
+        self.app_version_sub  =app_version_sub
         self.sf = sf 
         self.bw = bw
         self.cr = cr
@@ -52,45 +53,53 @@ class Worker(QObject):
         self.ADR_Mode = ADR_Mode
         self.node_addr   = node_addr
         self.AES_en = AES_en.AES_Encrypt(self.file_path ,file_bin_en_path )
+        self.StatusUpdate = status_update
         self.Size_file_Encrypted  = None
         global FW_information
     def process(self):
         #get Url 
         self.download_url = self.firebase_instance.getDownload_URL( self.file_name , user)
         #push information to realtime database 
+        #get Time OTA 
+        self.firebase_instance.getOTAbegin_Time()
+        self.firebase_instance.getOTAfinish_Time()
+        
+        #print(iv)
+        self.generate_crc32_table(poly)
+        crc32_checksum = self.crc32_stm(self.file_path)
         #Encrypt File 
         iv,self.Size_file_Encrypted  = self.AES_en.encrypt_file()
-        #print(iv)
-        
         # upload to firebase
         self.firebase_instance.fb_add_file(file_bin_en_path, self.file_name)
         time_current_update  = datetime.now()
         time_current_save  = time_current_update.strftime("%d/%m/%Y-%H:%M:%S")
         upload_date_str = time_current_update.strftime("%Y%m%d%H%M%S")
         #convert dict to JSON 
-        FW_Information = self.Create_Json_Object(self.download_url  , time_current_update , self.app_version)
+        FW_Information = self.Create_Json_Object(self.download_url  , time_current_update , self.app_version_main ,self.app_version_sub)
         print(FW_Information)
         #remove old firmware 
         self.firebase_instance.remove_FW_path()
         #encrypt firmware
-
         #upload to FIrebase
-        self.firebase_instance.set_FW_path(self.file_name ,self.download_url)
-        self.firebase_instance.set_App_ver(self.file_name , self.app_version)
-        self.firebase_instance.set_timedate(self.file_name , upload_date_str)
-        self.firebase_instance.set_file_code(self.file_name , self.Size_file_Encrypted)
-        self.firebase_instance.set_LoRa_info(self.file_name , self.sf , self.bw , self.cr)
-        self.firebase_instance.set_node_update(self.file_name , self.node_addr)
-        self.firebase_instance.set_ADR_mode(self.file_name , self.ADR_Mode)
-        self.save_to_json(time_current_save, self.file_name,self.file_code ,self.sf, self.bw, self.cr , self.app_version )
+        self.firebase_instance.setFW_name(self.file_name)
+        self.firebase_instance.set_FW_path( self.download_url)
+        self.firebase_instance.set_App_ver( self.app_version_main ,self.app_version_sub )
+        self.firebase_instance.set_timedate( upload_date_str)
+        self.firebase_instance.set_file_code(self.Size_file_Encrypted)
+        self.firebase_instance.set_LoRa_info(self.sf , self.bw , self.cr ,  self.StatusUpdate)
+        self.firebase_instance.set_node_update(self.node_addr)
+        self.firebase_instance.setOTAbegin_Time(self.firebase_instance.Time_Begin_OTA)
+        self.firebase_instance.setOTAfinish_Time(self.firebase_instance.Time_Finish_OTA)
+        self.firebase_instance.setCRC_Firmware(crc32_checksum)
+        #self.firebase_instance.set_ADR_mode(self.ADR_Mode)
+        self.save_to_json(time_current_save, self.file_name,self.file_code ,self.sf, self.bw, self.cr , self.app_version_main , self.app_version_sub )
         #print(self.download_url)
-        self.generate_crc32_table(poly)
-        crc32_checksum = self.crc32_stm(self.file_path)
+        
         #print(crc32_checksum)
         self.crc_calculated.emit(crc32_checksum)  # Emit the calculated CRC
         # decrypted_file_path  = self.AES_en.decrypt_file(iv)
         # print(decrypted_file_path)
-        heading = f"Firmware Upload Appl Verions {self.app_version} for Node ID {self.node_addr}"
+        heading = f"Firmware Upload Appl Verions {self.app_version_main}.{self.app_version_sub} for Node ID {self.node_addr}"
         OneSignal.send_onesignal_notification(content , heading)
         self.show_popup("Upload Success" , "Upload Done" )
         
@@ -155,7 +164,6 @@ class Worker(QObject):
         length = len(bytes_arr)
         #print(length)
         crc = 0xffffffff
-
         k = 0
         while length >= 4:
 
@@ -168,7 +176,6 @@ class Worker(QObject):
             crc = ((crc << 8) & 0xffffffff) ^ custom_crc_table[0xFF & ((crc >> 24) ^ (v >> 24))]
             k += 4
             length -= 4
-
         if length > 0:
             v = 0
 
@@ -188,22 +195,25 @@ class Worker(QObject):
             crc = (( crc << 8 ) & 0xffffffff) ^ custom_crc_table[0xFF & ( (crc >> 24) ^ (v >> 8) )]
             crc = (( crc << 8 ) & 0xffffffff) ^ custom_crc_table[0xFF & ( (crc >> 24) ^ (v >> 16) )]
             crc = (( crc << 8 ) & 0xffffffff) ^ custom_crc_table[0xFF & ( (crc >> 24) ^ (v >> 24) )]
-        crc = hex(crc)
+        print(crc)
+        crc = hex(crc).strip("0x")  # Remove "0x" prefix from hexadecimal string
+        print(crc)
         return crc
-    def Create_Json_Object(self , url, upload_date , app_version):
+    def Create_Json_Object(self , url, upload_date , app_version_main , app_version_sub):
         #convert Datetime
         upload_date_str = upload_date.strftime("%Y-%m-%d %H:%M:%S")
         FW_information ={
             "URL" :url,
             "UploadDate" : upload_date_str,
-            "Appversion" : app_version
+            "Appversion Main" : app_version_main,
+            "Appversion Sub" : app_version_sub
         }
         #convert dictionary to JSON 
         json_object = json.dumps(FW_information)
         return json_object
     #save to Json 
     
-    def save_to_json(self, time, file_name, code_size, sf, bw, cr, app_version):
+    def save_to_json(self, time, file_name, code_size, sf, bw, cr, app_version_main , app_version_sub):
         json_file_path = r"local_appdata\fw_his.json"
 
         # Create a dictionary for the new entry
@@ -214,7 +224,8 @@ class Worker(QObject):
             "sf": sf,
             "bw": bw,
             "cr": cr,
-            "app_version": app_version
+            "app_version_main": app_version_main,
+            "app_version_sub": app_version_sub,
         }
 
         # Check if the JSON file already exists
@@ -478,7 +489,7 @@ class Firebase_Uploader(QWidget):
         # Thêm trường CRC
         self.e1 = QLineEdit()
         self.e1.setValidator(QIntValidator())
-        self.e1.setMaxLength(4)
+        self.e1.setMaxLength(20)
         flo.addRow("CRC:", self.e1)
 
         # Thêm trường Serial Port
@@ -533,8 +544,8 @@ class Firebase_Uploader(QWidget):
         history_tab.addWidget(self.reset_history_button)
 
         self.history_table = QTableWidget()
-        self.history_table.setColumnCount(7)
-        self.history_table.setHorizontalHeaderLabels(["Time", "File Name", "Code Size", "SF", "BW", "CR", "App Version"])
+        self.history_table.setColumnCount(8)
+        self.history_table.setHorizontalHeaderLabels(["Time", "File Name", "Code Size", "SF", "BW", "CR", "App Version Main" , "App Version Sub"])
         history_tab.addWidget(self.history_table)
 
         self.history_tab_layout.addLayout(history_tab)
@@ -567,7 +578,8 @@ class Firebase_Uploader(QWidget):
                             sf = int(entry['sf'])
                             bw = int(entry['bw'])
                             cr = int(entry['cr'])
-                            app_version = entry['app_version']
+                            app_version_main = int(entry['app_version_main'])
+                            app_version_sub = int(entry['app_version_sub'])
                             row_position = self.history_table.rowCount()
                             self.history_table.insertRow(row_position)
                             self.history_table.setItem(row_position, 0, QTableWidgetItem(time))
@@ -576,7 +588,8 @@ class Firebase_Uploader(QWidget):
                             self.history_table.setItem(row_position, 3, QTableWidgetItem(str(sf)))
                             self.history_table.setItem(row_position, 4, QTableWidgetItem(str(bw)))
                             self.history_table.setItem(row_position, 5, QTableWidgetItem(str(cr)))
-                            self.history_table.setItem(row_position, 6, QTableWidgetItem(app_version))
+                            self.history_table.setItem(row_position, 6, QTableWidgetItem(str(app_version_main)))
+                            self.history_table.setItem(row_position, 7, QTableWidgetItem(str(app_version_sub)))
                 except FileNotFoundError as e:
                     logging.warning(f"File Not Found: {e}")
             else:
@@ -599,13 +612,14 @@ class Firebase_Uploader(QWidget):
 
         if file_dialog.exec_():
             file_paths = file_dialog.file_info_tab.file_path
-            file_name , file_code , sf, bw, cr , app_version ,ADR_Mode , node_addr = file_dialog.get_file_info()
+            file_name , file_code , sf, bw, cr , app_version_main , app_version_sub ,ADR_Mode , node_addr, status_update= file_dialog.get_file_info()
             if file_paths:
                 download_url = None
                 # Prompt the user to enter a name for the file      
-                if file_name is not None and app_version is not None:
+                if file_name is not None and app_version_sub is not None and app_version_main is not None:
                     try:
-                        app_version = int(app_version)
+                        app_version_sub = int(app_version_sub)
+                        app_version_main = int(app_version_main)
                     except ValueError:
                         QMessageBox.warning(self, "Error", "App version must be a number.")
                         return  # Exit the function if app version is not a number
@@ -620,7 +634,7 @@ class Firebase_Uploader(QWidget):
                     progress_dialog.setValue(0)
                     # Start a separate thread to handle file upload and CRC calculation
                     thread = QThread()
-                    worker = Worker(file_paths, firebase_instance  , file_name, download_url , user , app_version ,  sf, bw, cr , file_code , ADR_Mode , node_addr) #pass the file name 
+                    worker = Worker(file_paths, firebase_instance  , file_name, download_url , user , app_version_main ,app_version_sub,  sf, bw, cr , file_code , ADR_Mode , node_addr , status_update) #pass the file name 
                     worker.moveToThread(thread)
 
                     # Connect signals
@@ -686,10 +700,6 @@ class Firebase_Uploader(QWidget):
         self.serial_textedit.append(message)
         self.connect_button.setEnabled(True)
         self.disconnect_button.setEnabled(False)
-    
-
-    
-    
 #-------------------------------FUNC of Serial
 class SerialReader(QObject):
     data_available = pyqtSignal(str)
@@ -705,7 +715,16 @@ class SerialReader(QObject):
     def read_serial(self):
         while self.alive.is_set() and self.serialInst.is_open:
             try:
-                data = self.serialInst.readline().decode("utf-8").strip()
+                # Read raw bytes from the serial port
+                raw_data = self.serialInst.readline()
+                
+                # Detect encoding of the raw data
+                result = chardet.detect(raw_data)
+                encoding = result['encoding'] or 'utf-8'  # Fallback to 'utf-8' if detection fails
+
+                # Decode the raw data with detected encoding, ignoring errors
+                data = raw_data.decode(encoding, errors='ignore').strip()
+
                 if data:
                     self.data_available.emit(data)
                 print(data)
@@ -751,7 +770,7 @@ class SerialReader(QObject):
 class MainConfigFUOTA(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Main Window")
+        self.setWindowTitle("Configurate FUOTA")
         self.setGeometry(100, 100, 800, 600)
         self.file_path = None
         # Create the tabs
@@ -788,12 +807,14 @@ class MainConfigFUOTA(QDialog):
             bw = self.file_info_tab.BandWidth.get(bw_text, -1)  # Get BW integer value from dictionary
             cr = self.file_info_tab.LoRaCR.get(cr_text, -1)  # Get CR integer value from dictionary
             file_code = self.file_info_tab.file_size
-            app_version = self.file_info_tab.app_version_edit.value()
+            app_version_main = self.file_info_tab.app_version_main_edit.value()
+            app_version_sub = self.file_info_tab.app_version_sub_edit.value()
             ADR_Mode = self.file_info_tab.ADR_mode
             node_address = self.file_info_tab.node_address_combobox.currentText()
-            return file_name, file_code, sf, bw, cr, app_version ,ADR_Mode,node_address
+            status_update = self.file_info_tab.UpdateStatus_val
+            return file_name, file_code, sf, bw, cr, app_version_main , app_version_sub ,ADR_Mode,node_address,status_update
         else:
-            return None, None, None, None, None, None , None, None
+            return None, None, None, None, None, None , None, None, None,None
 # Custom class combobox
 class CustomComboBox(QComboBox):
     def __init__(self, parent=None):
@@ -813,6 +834,7 @@ class FileInputDialog(QDialog):
         self.setWindowTitle("File Information")
         self.file_path = file_path
         self.ADR_mode = False
+        self.UpdateStatus_val = "false"
         self.Spreading_Factor = {
             '6':   0, 
             '7':   1,
@@ -877,6 +899,21 @@ class FileInputDialog(QDialog):
         self.config_mode_notify = QLabel("* Notice: Enabling ADR mode will disable manual configuration of LoRa parameters")
         self.config_mode_notify.setStyleSheet("color: red;")
 
+        self.Update_Status = QLabel("* Notice: Start update after upload firmware successfully")
+        self.Update_Status.setStyleSheet("color: red;")
+        self.Update_Status_check = QCheckBox()
+        self.Update_Status_check.clicked.connect(self.config_update)
+        self.Update_Status_check_text = QLabel("Start Update")
+        self.Update_Status_check_layout = QHBoxLayout()
+        self.Update_Status_check_layout.addWidget(self.Update_Status_check)
+        self.Update_Status_check_layout.addWidget(self.Update_Status_check_text)
+        self.Update_Status_check_layout.setSpacing(5)
+        self.Update_Status_check_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.Update_Status_layout = QVBoxLayout()
+        self.Update_Status_layout.addWidget(self.Update_Status)
+        self.Update_Status_layout.addLayout(self.Update_Status_check_layout)
+
         self.sf_label = QLabel("Spreading Factor:")
         self.sf_combobox = QComboBox()
         self.sf_combobox.addItems(self.Spreading_Factor.keys())
@@ -889,10 +926,22 @@ class FileInputDialog(QDialog):
         self.cr_combobox = QComboBox()
         self.cr_combobox.addItems(self.LoRaCR.keys())
 
-        self.app_version_label = QLabel("App Version:")
-        self.app_version_edit = QSpinBox()
-        self.app_version_edit.setMinimum(0)
-        self.app_version_edit.setMaximum(9999)
+        self.app_version_main_label = QLabel("App Version Main:")
+        self.app_version_main_edit = QSpinBox()
+        self.app_version_main_edit.setMinimum(0)
+        self.app_version_main_edit.setMaximum(9999)
+
+        self.app_version_sub_label = QLabel("App Version Sub:")
+        self.app_version_sub_edit = QSpinBox()
+        self.app_version_sub_edit.setMinimum(0)
+        self.app_version_sub_edit.setMaximum(9999)
+
+        # Create a horizontal layout for the app versions
+        self.app_version_layout = QHBoxLayout()
+        self.app_version_layout.addWidget(self.app_version_main_label)
+        self.app_version_layout.addWidget(self.app_version_main_edit)
+        self.app_version_layout.addWidget(self.app_version_sub_label)
+        self.app_version_layout.addWidget(self.app_version_sub_edit)
 
         self.node_address_label = QLabel("Node Address:")
         self.node_address_combobox = CustomComboBox()
@@ -906,17 +955,14 @@ class FileInputDialog(QDialog):
         layout.addLayout(self.file_size_layout)
         layout.addWidget(self.file_name_label)
         layout.addWidget(self.file_name_edit)
-        layout.addWidget(self.config_mode_parameter)
         layout.addWidget(self.sf_label)
         layout.addWidget(self.sf_combobox)
         layout.addWidget(self.bw_label)
         layout.addWidget(self.bw_combobox)
         layout.addWidget(self.cr_label)
         layout.addWidget(self.cr_combobox)
-        layout.addWidget(self.app_version_label)
-        layout.addWidget(self.app_version_edit)
-        layout.addWidget(self.config_mode_notify)
-        layout.addLayout(self.config_mode_parameter_layout)
+        layout.addLayout(self.app_version_layout)  # Add the app version layout
+        layout.addLayout(self.Update_Status_layout)
 
         self.setLayout(layout)
 
@@ -935,11 +981,15 @@ class FileInputDialog(QDialog):
     def browse_file(self):
         self.file_path, _ = QFileDialog.getOpenFileName(self, "Choose Firmware File", "", "Bin Files (*.bin)")
         if self.file_path:
+            self.file_size = os.path.getsize(self.file_path)
+            if self.file_size > 44 * 1024:
+                QMessageBox.warning(self, "File Size Error", "The selected file is larger than 42KB.")
+                return  # Exit the function if file size is too large
+
             base_name = os.path.basename(self.file_path)  # Lấy tên gốc của file
             base_name_without_extension = os.path.splitext(base_name)[0]  # Loại bỏ phần mở rộng .bin
             self.file_name_edit.setText(base_name_without_extension)
             self.file_dir_edit.setText(self.file_path)
-            self.file_size = os.path.getsize(self.file_path)
             self.file_size_code_edit.setText(str(self.file_size))
     #Load Node Address
     def load_node_addresses(self):
@@ -973,7 +1023,10 @@ class FileInputDialog(QDialog):
             self.cr_combobox.setDisabled(False)
             self.bw_combobox.setDisabled(False)
             self.ADR_mode = False
-
+    def config_update(self):
+        if self.Update_Status_check.isChecked():
+            self.UpdateStatus_val  = "true"
+        else : self.UpdateStatus_val  = "false"
     # Define a function to check if the filename contains special characters
     def contains_special_characters(self , filename):
         # Define a regular expression pattern to match special characters
@@ -994,8 +1047,6 @@ class DeviceManagementTab(QWidget):
         self.node_address_edit = QLineEdit()
         self.add_device_button = QPushButton("Add Device")
         self.add_device_button.clicked.connect(self.add_device)
-
-       
         # Table to display existing devices
         self.device_table = QTableWidget()
         self.device_table.setColumnCount(3)  # Thêm một cột mới cho nút xóa
@@ -1007,7 +1058,6 @@ class DeviceManagementTab(QWidget):
         add_device_layout.addWidget(self.node_address_label)
         add_device_layout.addWidget(self.node_address_edit)
         add_device_layout.addWidget(self.add_device_button)
-
         # Main layout
         main_layout = QVBoxLayout()
         main_layout.addLayout(add_device_layout)
@@ -1066,8 +1116,7 @@ class DeviceManagementTab(QWidget):
             # Create an empty JSON file if it doesn't exist
             with open('devices.json', 'w') as f:
                 json.dump([], f)
-            logging.warning("devices.json file not found. A new file has been created.")
-        
+            logging.warning("devices.json file not found. A new file has been created.")      
         try:
             with open('devices.json', 'r') as f:
                 devices = json.load(f)
@@ -1101,29 +1150,23 @@ class SignupPage(QWidget):
         super().__init__()
         self.setWindowTitle("Signup Page")
         self.setGeometry(200, 200, 500, 500)
-
         layout = QVBoxLayout()
-
         self.username_label = QLabel("Username:")
         self.username_input = QLineEdit()
         layout.addWidget(self.username_label)
         layout.addWidget(self.username_input)
-
         self.email_label = QLabel("Email:")
         self.email_input = QLineEdit()
         layout.addWidget(self.email_label)
         layout.addWidget(self.email_input)
-
         self.password_label = QLabel("Password:")
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
         layout.addWidget(self.password_label)
         layout.addWidget(self.password_input)
-
         self.signup_button = QPushButton("Sign Up")
         self.signup_button.clicked.connect(firebase.FirebaseInit.signup(self , self.email_input , self.password_input))
         layout.addWidget(self.signup_button)
-
         self.setLayout(layout)
 
 
