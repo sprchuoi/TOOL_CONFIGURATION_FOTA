@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="active_nav">#E9B824</color>
+    <color name="blue">#1640D6</color>
+    <color name="purple" >#00ecff</color>
+    <color name="red">#D80032</color>
+    <color name="green">#D2DE32</color>
+    <color name="mid_blue">#E0F4FF</color>
+    <color name="off_actuator">#FFFFFFFF</color>
+    <color name="on_actuator">#576CBC</color>
+    <color name="icon_actuator_off">#FFFFFFFF</color>
+    <color name="icon_actuator_on">#F4E500</color>
+    <color name="tv_actuator_off">#FF000000</color>
+    <color name="tv_actuator_on">#F4E500</color>
+    <color name="card_timer_disable">#B2B3C3</color>
+    <color name="card_timer_enable">#ECF9FF</color>
+
+</resources>

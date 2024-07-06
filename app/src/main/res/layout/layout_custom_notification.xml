@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
+    android:padding="10dp"
+    android:background="@color/mid_blue">
+    
+    <ImageView
+        android:id="@+id/img_notification"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_centerVertical="true"
+        android:src="@drawable/aquaphonic">
+
+    </ImageView>
+    <LinearLayout
+        android:id="@+id/linearLayout_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_centerVertical="true"
+        android:orientation="vertical"
+        android:layout_toEndOf="@id/img_notification">
+
+        <TextView
+            android:id="@+id/title_notification"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Notification Message"
+            style="@style/TextAppearance.Compat.Notification.Title">
+
+        </TextView>
+        <TextView
+            android:id="@+id/info_notification"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            style="@style/TextAppearance.Compat.Notification.Info"
+            android:text="Status : ON">
+
+        </TextView>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/time_notification"
+        style="@style/TextAppearance.Compat.Notification.Info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="-47dp"
+        android:layout_marginEnd="80dp"
+        android:layout_marginBottom="5dp"
+        android:layout_toEndOf="@+id/linearLayout_info"
+        android:text="01:00 - 02:00">
+
+    </TextView>
+
+    <Button
+        android:id="@+id/button_snooze"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp"
+        android:text="Snooze" />
+
+
+</RelativeLayout>

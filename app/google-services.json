@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "509131979705",
+    "project_id": "aquasys-e55d4",
+    "storage_bucket": "aquasys-e55d4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:509131979705:android:ac84dd4e6f98237c5d1468",
+        "android_client_info": {
+          "package_name": "com.example.aquasys"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDgReLUPXPzDwMjOO5U5Y66RuTCFwUBJR0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

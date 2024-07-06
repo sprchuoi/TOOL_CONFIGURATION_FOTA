@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context=".fragment.ActuatorFragment"
+    android:orientation="vertical">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <androidx.cardview.widget.CardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            android:layout_margin="10dp"
+            >
+    <me.ibrahimsn.lib.SmoothBottomBar
+        android:id="@+id/navi_menu_actuator"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        app:backgroundColor="@color/white"
+        app:iconSize="30dp"
+        app:iconTint="@color/black"
+        app:iconTintActive="#1640D6"
+        app:menu="@menu/menu_actuator"
+        app:textColor="#1640D6"
+        app:indicatorColor="#EEF5FF"/>
+        </androidx.cardview.widget.CardView>
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/view_pager_actuator"
+        />
+    </LinearLayout>
+
+
+</FrameLayout>

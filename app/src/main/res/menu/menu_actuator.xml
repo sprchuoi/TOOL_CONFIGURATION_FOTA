@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/active_actuator_environment"
+        android:title="@string/for_plant"
+        android:icon="@drawable/potted_plant"/>
+    <item
+        android:id="@+id/active_actuator"
+        android:title="@string/for_fish"
+        android:icon="@drawable/fish"/>
+
+</menu>
